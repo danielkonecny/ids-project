@@ -20,11 +20,18 @@ DROP TABLE clanek               CASCADE CONSTRAINTS;
 DROP TABLE vlog                 CASCADE CONSTRAINTS;
 
 -----------------------------------------------------------
+---------------------- DROP SEQUENCE ----------------------
+-----------------------------------------------------------
+
+DROP SEQUENCE uzivatel_inc;
+
+-----------------------------------------------------------
 ---------------------- CREATE TABLES ----------------------
 -----------------------------------------------------------
-  
+
 CREATE TABLE uzivatel (
-  id_uzivatel           NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
+ -- id_uzivatel           NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
+  id_uzivatel           NUMBER(15)      PRIMARY KEY NOT NULL,   -- Pri pouziti triggeru na inkrementaci ID.
   jmeno                 VARCHAR2(100)   NOT NULL,
   datum_narozeni        DATE            NOT NULL,
   email                 VARCHAR2(100)   NOT NULL    CHECK(REGEXP_LIKE(email,'^[-0-9a-zA-Z.!#$%&*+/=?^_`{|}~]+@[-0-9a-zA-Z.]+$')),
@@ -60,7 +67,7 @@ CREATE TABLE ucastni_se_jizdy (
   jizda                 NUMBER(15)      NOT NULL,
   misto_nastupu_s       NUMBER(11,8)    NOT NULL,   -- souradnice sirky
   misto_nastupu_d       NUMBER(11,8)    NOT NULL,   -- souradnice delky
-  misto_vystupu_S       NUMBER(11,8)    NOT NULL,   -- souradnice sirky
+  misto_vystupu_s       NUMBER(11,8)    NOT NULL,   -- souradnice sirky
   misto_vystupu_d       NUMBER(11,8)    NOT NULL    -- souradnice delky
 );
 
@@ -147,6 +154,32 @@ ALTER TABLE vlog ADD (
   CONSTRAINT FK_vlog_autor          FOREIGN KEY (autor)         REFERENCES uzivatel,
   CONSTRAINT FK_vlog_vylet          FOREIGN KEY (vylet)         REFERENCES vylet
 );
+
+-----------------------------------------------------------
+------------------------- TRIGGERS ------------------------
+-----------------------------------------------------------
+
+CREATE SEQUENCE uzivatel_inc;
+CREATE OR REPLACE TRIGGER uzivatel_insert BEFORE INSERT ON uzivatel FOR EACH ROW
+BEGIN
+  SELECT uzivatel_inc.nextval INTO :new.id_uzivatel FROM dual;
+END;
+
+CREATE OR REPLACE TRIGGER check_souradnice BEFORE INSERT ON ucastni_se_jizdy FOR EACH ROW
+BEGIN
+  IF :new.misto_nastupu_s < -90 OR :new.misto_nastupu_s > 90 THEN
+    Raise_Application_Error(-20001, 'ERROR: Nespravny format zemepisne sirky mista nastupu!');
+  END IF;
+  IF :new.misto_nastupu_d < -180 OR :new.misto_nastupu_d > 180 THEN
+    Raise_Application_Error(-20001, 'ERROR: Nespravny format zemepisne delky mista nastupu!');
+  END IF;
+  IF :new.misto_vystupu_s < -90 OR :new.misto_nastupu_s > 90 THEN
+    Raise_Application_Error(-20001, 'ERROR: Nespravny format zemepisne sirky mista vystupu!');
+  END IF;
+  IF :new.misto_vystupu_d < -180 OR :new.misto_nastupu_s > 180 THEN
+    Raise_Application_Error(-20001, 'ERROR: Nespravny format zemepisne delky mista vystupu!');
+  END IF;
+END;
 
 -----------------------------------------------------------
 --------------------- INSERT TEST DATA --------------------
@@ -252,50 +285,50 @@ INSERT INTO vlog (autor, vylet, opravneni, video, popisek)
 ----------------------- SELECT DATA -----------------------
 -----------------------------------------------------------
 
--- Spojeni 2 tabulek - Zobrazi vsechny jizdy jednoho ridice.
-SELECT jizda.*
-FROM jizda
-JOIN uzivatel ON jizda.nabizejici = uzivatel.id_uzivatel
-WHERE uzivatel.id_uzivatel = '3';
-
--- Spojeni 2 tabulek - Zobrazi vsechna slovni hodnoceni udelena danemu ridici.
-SELECT uzivatel.jmeno, hodnoceni.slovni_hodnoceni
-FROM hodnoceni
-JOIN uzivatel ON hodnoceni.hodnoceny = uzivatel.id_uzivatel
-WHERE hodnoceni.hodnoceny = '1';
-
--- Spojeni 3 tabulek - Zobrazi jizdu, cestujiciho, misto odkud a kam jede a cas odjezdu.
-SELECT jizda.id_jizda, uzivatel.jmeno AS cestujici, jizda.cas_odjezdu,
-    ucastni_se_jizdy.misto_nastupu_s, ucastni_se_jizdy.misto_nastupu_d,
-    ucastni_se_jizdy.misto_vystupu_s, ucastni_se_jizdy.misto_vystupu_d
-FROM ucastni_se_jizdy
-JOIN uzivatel ON ucastni_se_jizdy.cestujici = uzivatel.id_uzivatel
-JOIN jizda ON ucastni_se_jizdy.jizda = jizda.id_jizda;
-
--- Klauzule GROUP BY a agregacni funkce - Zobrazi pocet ucastniku jednotlivych vyletu.
-SELECT vylet.id_vylet, vylet.harmonogram, COUNT(vylet.id_vylet) AS pocet_ucastniku
-FROM ucastni_se_vyletu
-JOIN vylet ON ucastni_se_vyletu.vylet = vylet.id_vylet
-JOIN uzivatel ON ucastni_se_vyletu.ucastnik = uzivatel.id_uzivatel
-GROUP BY vylet.id_vylet, vylet.harmonogram;
-
--- Klauzule GROUP BY a agregacni funkce - Zobrazi prumerne hodnoceni kazdeho uzivatele a seradi od nejlepsiho.
-SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
-FROM uzivatel
-JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
-GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
-ORDER BY hodnoceni DESC;
-
--- Predikat EXISTS - Zobrazi vsechny vylety, ktere maji clanek i vlog.
-SELECT DISTINCT vylet.id_vylet, vylet.harmonogram
-FROM vylet
-JOIN vlog ON vylet.id_vylet = vlog.vylet
-WHERE EXISTS (SELECT clanek.id_clanek FROM vylet JOIN clanek ON clanek.vylet = vylet.id_vylet);
-
--- Predikat IN s vnorenym SELECTem - Zobrazi jmena uzivatelu, kteri nabizi jizdy bez flexibility.
-SELECT DISTINCT jmeno
-FROM uzivatel
-WHERE id_uzivatel IN (SELECT nabizejici FROM jizda WHERE casova_flexibilita = 0);
+-- -- Spojeni 2 tabulek - Zobrazi vsechny jizdy jednoho ridice.
+-- SELECT jizda.*
+-- FROM jizda
+-- JOIN uzivatel ON jizda.nabizejici = uzivatel.id_uzivatel
+-- WHERE uzivatel.id_uzivatel = '3';
+--
+-- -- Spojeni 2 tabulek - Zobrazi vsechna slovni hodnoceni udelena danemu ridici.
+-- SELECT uzivatel.jmeno, hodnoceni.slovni_hodnoceni
+-- FROM hodnoceni
+-- JOIN uzivatel ON hodnoceni.hodnoceny = uzivatel.id_uzivatel
+-- WHERE hodnoceni.hodnoceny = '1';
+--
+-- -- Spojeni 3 tabulek - Zobrazi jizdu, cestujiciho, misto odkud a kam jede a cas odjezdu.
+-- SELECT jizda.id_jizda, uzivatel.jmeno AS cestujici, jizda.cas_odjezdu,
+--     ucastni_se_jizdy.misto_nastupu_s, ucastni_se_jizdy.misto_nastupu_d,
+--     ucastni_se_jizdy.misto_vystupu_s, ucastni_se_jizdy.misto_vystupu_d
+-- FROM ucastni_se_jizdy
+-- JOIN uzivatel ON ucastni_se_jizdy.cestujici = uzivatel.id_uzivatel
+-- JOIN jizda ON ucastni_se_jizdy.jizda = jizda.id_jizda;
+--
+-- -- Klauzule GROUP BY a agregacni funkce - Zobrazi pocet ucastniku jednotlivych vyletu.
+-- SELECT vylet.id_vylet, vylet.harmonogram, COUNT(vylet.id_vylet) AS pocet_ucastniku
+-- FROM ucastni_se_vyletu
+-- JOIN vylet ON ucastni_se_vyletu.vylet = vylet.id_vylet
+-- JOIN uzivatel ON ucastni_se_vyletu.ucastnik = uzivatel.id_uzivatel
+-- GROUP BY vylet.id_vylet, vylet.harmonogram;
+--
+-- -- Klauzule GROUP BY a agregacni funkce - Zobrazi prumerne hodnoceni kazdeho uzivatele a seradi od nejlepsiho.
+-- SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
+-- FROM uzivatel
+-- JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
+-- GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
+-- ORDER BY hodnoceni DESC;
+--
+-- -- Predikat EXISTS - Zobrazi vsechny vylety, ktere maji clanek i vlog.
+-- SELECT DISTINCT vylet.id_vylet, vylet.harmonogram
+-- FROM vylet
+-- JOIN vlog ON vylet.id_vylet = vlog.vylet
+-- WHERE EXISTS (SELECT clanek.id_clanek FROM vylet JOIN clanek ON clanek.vylet = vylet.id_vylet);
+--
+-- -- Predikat IN s vnorenym SELECTem - Zobrazi jmena uzivatelu, kteri nabizi jizdy bez flexibility.
+-- SELECT DISTINCT jmeno
+-- FROM uzivatel
+-- WHERE id_uzivatel IN (SELECT nabizejici FROM jizda WHERE casova_flexibilita = 0);
 
 -----------------------------------------------------------
 ------------------------ PROCEDURES -----------------------
