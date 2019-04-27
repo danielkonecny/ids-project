@@ -207,15 +207,15 @@ INSERT INTO automobil (jmeno, vlastnik)
 
 -- JIZDA
 INSERT INTO jizda (nabizejici, automobil, trasa, zajizdka, cas_odjezdu, casova_flexibilita, cena_za_km, zavazadla)
-    VALUES (1, 1, '/server/trasy/00001.xml', 23, TO_DATE('27-03-19 20:18:07','DD-MM-YY HH24:MI:SS'), 15, 368, 1);
+    VALUES (1, 1, '/server/trasy/00001.xml', 23, TO_DATE('27-03-20 20:18:07','DD-MM-YY HH24:MI:SS'), 15, 368, 1);
 INSERT INTO jizda (nabizejici, automobil, trasa, zajizdka, cas_odjezdu, casova_flexibilita, cena_za_km, zavazadla)
-    VALUES (2, 3, '/server/trasy/00002.xml', 5, TO_DATE('21-02-19 10:16:07','DD-MM-YY HH24:MI:SS'), 10, 130, 0);
+    VALUES (2, 3, '/server/trasy/00002.xml', 5, TO_DATE('21-02-20 10:16:07','DD-MM-YY HH24:MI:SS'), 10, 130, 0);
 INSERT INTO jizda (nabizejici, automobil, trasa, zajizdka, cas_odjezdu, casova_flexibilita, cena_za_km, zavazadla)
     VALUES (4, 4, '/server/trasy/00003.xml', 15, TO_DATE('6-02-19 9:16:07','DD-MM-YY HH24:MI:SS'), 20, 100, 1);
 INSERT INTO jizda (nabizejici, automobil, trasa, zajizdka, cas_odjezdu, casova_flexibilita, cena_za_km, zavazadla)
     VALUES (3, 5, '/server/trasy/00004.xml', 25, TO_DATE('18-02-19 10:14:03','DD-MM-YY HH24:MI:SS'), 100, 60, 1);
 INSERT INTO jizda (nabizejici, automobil, trasa, zajizdka, cas_odjezdu, casova_flexibilita, cena_za_km, zavazadla)
-    VALUES (3, 5, '/server/trasy/00005.xml', 50, TO_DATE('18-04-19 10:14:03','DD-MM-YY HH24:MI:SS'), 0, 80, 0);
+    VALUES (3, 5, '/server/trasy/00005.xml', 50, TO_DATE('18-06-19 10:14:03','DD-MM-YY HH24:MI:SS'), 0, 80, 0);
 
 -- UCASTNI_SE_JIZDY
 INSERT INTO ucastni_se_jizdy (cestujici, jizda, misto_nastupu_s, misto_nastupu_d, misto_vystupu_s, misto_vystupu_d)
@@ -361,7 +361,7 @@ INSERT INTO vlog (autor, vylet, opravneni, video, popisek)
 -- EXEC zkusenost_ridice(1);
 
 -----------------------------------------------------------
--------------------------- OTHERS -------------------------
+---------------------- ACCESS RIGHTS ----------------------
 -----------------------------------------------------------
 
 GRANT ALL ON uzivatel           TO xjerab24;
@@ -377,9 +377,37 @@ GRANT ALL ON vlog               TO xjerab24;
 -- GRANT EXECUTE ON zkusenost_ridice TO xjerab24;
 
 -----------------------------------------------------------
+-------------------- MATERIALIZED VIEW --------------------
+-----------------------------------------------------------
+
+DROP MATERIALIZED VIEW LOG ON jizda;
+DROP MATERIALIZED VIEW nabizene_jizdy;
+
+CREATE MATERIALIZED VIEW LOG ON jizda WITH PRIMARY KEY, ROWID(nabizejici) INCLUDING NEW VALUES;
+
+CREATE MATERIALIZED VIEW nabizene_jizdy
+CACHE
+BUILD IMMEDIATE
+REFRESH FAST ON COMMIT
+ENABLE QUERY REWRITE
+AS
+    SELECT J.nabizejici, COUNT(J.nabizejici)
+    FROM jizda J
+    GROUP BY J.nabizejici;
+
+GRANT ALL ON nabizene_jizdy TO xjerab24;
+
+SELECT * FROM nabizene_jizdy;
+INSERT INTO jizda (nabizejici, automobil, trasa, zajizdka, cas_odjezdu, casova_flexibilita, cena_za_km, zavazadla)
+    VALUES (4, 4, '/server/trasy/00006.xml', 42, TO_DATE('6-07-19 9:16:07','DD-MM-YY HH24:MI:SS'), 20, 100, 1);
+INSERT INTO jizda (nabizejici, automobil, trasa, zajizdka, cas_odjezdu, casova_flexibilita, cena_za_km, zavazadla)
+    VALUES (3, 5, '/server/trasy/00007.xml', 69, TO_DATE('18-02-19 10:14:03','DD-MM-YY HH24:MI:SS'), 100, 60, 1);
+COMMIT;
+SELECT * FROM nabizene_jizdy;
+
+-----------------------------------------------------------
 -------------------------- OTHERS -------------------------
 -----------------------------------------------------------
 
 -- TODO - index
 -- TODO - EXPLAIN PLAN
--- TODO - materializovany pohled
