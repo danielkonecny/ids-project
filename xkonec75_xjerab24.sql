@@ -1,9 +1,9 @@
--- Projekt 3. cast - SQL skript s nekolika dotazy SELECT
+-- Projekt 4. a 5. cast - SQL skript pro vytvoreni pokrocilych objektu schematu databaze
 -- Course: Databazove systemy (IDS)
 -- Institution: Brno University of Technology, Faculty of Information Technology
 -- Authors: Filip Jerabek (xjerab24), Daniel Konecny (xkonec75)
--- Version: 3.1
--- Date: 22. 4. 2019
+-- Version: 3.5
+-- Date: 29. 4. 2019
 
 -----------------------------------------------------------
 ------------------------ DROP DATA ------------------------
@@ -391,7 +391,7 @@ BUILD IMMEDIATE
 REFRESH FAST ON COMMIT
 ENABLE QUERY REWRITE
 AS
-    SELECT J.nabizejici, COUNT(J.nabizejici)
+    SELECT J.nabizejici, COUNT(J.nabizejici) AS pocet_jizd
     FROM jizda J
     GROUP BY J.nabizejici;
 
@@ -406,7 +406,7 @@ COMMIT;
 SELECT * FROM nabizene_jizdy;
 
 -----------------------------------------------------------
--------------------------- OTHERS -------------------------
+------------------- INDEX & EXPLAIN PLAN ------------------
 -----------------------------------------------------------
 
 -- TODO - index
