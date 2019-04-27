@@ -6,7 +6,7 @@
 -- Date: 22. 4. 2019
 
 -----------------------------------------------------------
------------------------ DROP TABLES -----------------------
+------------------------ DROP DATA ------------------------
 -----------------------------------------------------------
 
 DROP TABLE uzivatel             CASCADE CONSTRAINTS;
@@ -19,11 +19,9 @@ DROP TABLE ucastni_se_vyletu    CASCADE CONSTRAINTS;
 DROP TABLE clanek               CASCADE CONSTRAINTS;
 DROP TABLE vlog                 CASCADE CONSTRAINTS;
 
------------------------------------------------------------
----------------------- DROP SEQUENCE ----------------------
------------------------------------------------------------
-
 DROP SEQUENCE uzivatel_inc;
+
+-- DROP PROCEDURE zkusenost_ridice;
 
 -----------------------------------------------------------
 ---------------------- CREATE TABLES ----------------------
@@ -337,11 +335,51 @@ INSERT INTO vlog (autor, vylet, opravneni, video, popisek)
 -- TODO - zjistit zkusenost ridice podle poctu nabizenych jizd a nejak vyjadrit na intervalu od 1 do 5
 -- TODO - vypocet hodnoceni ridice pomoci hvezdicek (neco chytrejsiho nez prumer, viz. lamer)
 
+-- ALTER session SET nls_date_format='dd.mm.yyyy';
+-- CREATE OR REPLACE PROCEDURE zkusenost_ridice(uzivatel IN NUMBER) IS
+--     zkusenost NUMBER;
+-- BEGIN
+--     SELECT COUNT(*)
+--     INTO zkusenost
+--     FROM jizda
+--     WHERE nabizejici = uzivatel
+--     GROUP BY nabizejici;
+--     DBMS_OUTPUT.put_line('Zkusenost uzivatele je ' || zkusenost);
+-- END;
+-- /
+-- ALTER session SET nls_date_format='dd.mm.yyyy';
+
+-- CREATE OR REPLACE PROCEDURE hodnoceni_ridice AS
+-- BEGIN
+--     DBMS_OUTPUT.put_line();
+-- END;
+
+-----------------------------------------------------------
+------------------------ EXECUTION ------------------------
+-----------------------------------------------------------
+
+-- EXEC zkusenost_ridice(1);
+
+-----------------------------------------------------------
+-------------------------- OTHERS -------------------------
+-----------------------------------------------------------
+
+GRANT ALL ON uzivatel           TO xjerab24;
+GRANT ALL ON automobil          TO xjerab24;
+GRANT ALL ON jizda              TO xjerab24;
+GRANT ALL ON ucastni_se_jizdy   TO xjerab24;
+GRANT ALL ON hodnoceni          TO xjerab24;
+GRANT ALL ON vylet              TO xjerab24;
+GRANT ALL ON ucastni_se_vyletu  TO xjerab24;
+GRANT ALL ON clanek             TO xjerab24;
+GRANT ALL ON vlog               TO xjerab24;
+
+-- GRANT EXECUTE ON zkusenost_ridice TO xjerab24;
+
 -----------------------------------------------------------
 -------------------------- OTHERS -------------------------
 -----------------------------------------------------------
 
 -- TODO - index
 -- TODO - EXPLAIN PLAN
--- TODO - pristupova prava druhemu uzivateli
 -- TODO - materializovany pohled
