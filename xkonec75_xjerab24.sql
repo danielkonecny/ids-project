@@ -414,5 +414,32 @@ SELECT * FROM nabizene_jizdy;
 ------------------- INDEX & EXPLAIN PLAN ------------------
 -----------------------------------------------------------
 
--- TODO - index
--- TODO - EXPLAIN PLAN
+DROP INDEX hvezdicky;
+DROP INDEX jmeno;
+
+--puvodni neoptimalizovany SELECT
+-- EXPLAIN PLAN FOR
+--   SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
+--   FROM uzivatel
+--   JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
+--   GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
+--   ORDER BY hodnoceni DESC;
+
+--optimalizace c.1 pomoci indexu
+CREATE INDEX jmeno ON uzivatel(jmeno, id_uzivatel);
+
+
+--optimalizace c.2 pomoci dvou indexu
+CREATE INDEX hodnoceny ON hodnoceni(hodnoceny);
+
+EXPLAIN PLAN FOR
+  SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
+  FROM uzivatel
+  JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
+  GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
+  ORDER BY hodnoceni DESC;
+
+--vypis EXPLAIN PLAN
+SELECT PLAN_TABLE_OUTPUT
+FROM TABLE(DBMS_XPLAN.DISPLAY(/*NULL, 'statement_id','BASIC'*/));
+
