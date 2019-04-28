@@ -21,7 +21,7 @@ DROP TABLE vlog                 CASCADE CONSTRAINTS;
 
 DROP SEQUENCE uzivatel_inc;
 
--- DROP PROCEDURE zkusenost_ridice;
+DROP PROCEDURE statistika_ridice;
 
 -----------------------------------------------------------
 ---------------------- CREATE TABLES ----------------------
@@ -180,6 +180,35 @@ BEGIN
 END;
 
 -----------------------------------------------------------
+------------------------ PROCEDURES -----------------------
+-----------------------------------------------------------
+
+-- TODO - zjistit zkusenost ridice podle poctu nabizenych jizd a nejak vyjadrit na intervalu od 1 do 5
+-- TODO - vypocet hodnoceni ridice pomoci hvezdicek (neco chytrejsiho nez prumer, viz. lamer)
+
+CREATE OR REPLACE PROCEDURE statistika_ridice(uzivatel IN NUMBER) IS
+    CURSOR hodnoceni_ridice IS SELECT hvezdicky FROM hodnoceni WHERE hodnoceny = uzivatel;
+    jedno_hodnoceni NUMBER;
+    soucet NUMBER;
+    pocet NUMBER;
+    prumer_hodnoceni NUMBER;
+BEGIN
+    soucet := 0;
+    pocet := 0;
+    prumer_hodnoceni := 0;
+    OPEN hodnoceni_ridice;
+    LOOP
+        FETCH hodnoceni_ridice INTO jedno_hodnoceni;
+        EXIT WHEN hodnoceni_ridice%NOTFOUND;
+        soucet := soucet + jedno_hodnoceni;
+        pocet := pocet + 1;
+    END LOOP;
+    prumer_hodnoceni := soucet / pocet;
+    prumer_hodnoceni := ROUND(prumer_hodnoceni, 1);
+    DBMS_OUTPUT.put_line('Hodnoceni uzivatele je ' || prumer_hodnoceni);
+END statistika_ridice;
+
+-----------------------------------------------------------
 --------------------- INSERT TEST DATA --------------------
 -----------------------------------------------------------
 
@@ -329,36 +358,12 @@ INSERT INTO vlog (autor, vylet, opravneni, video, popisek)
 -- WHERE id_uzivatel IN (SELECT nabizejici FROM jizda WHERE casova_flexibilita = 0);
 
 -----------------------------------------------------------
------------------------- PROCEDURES -----------------------
------------------------------------------------------------
-
--- TODO - zjistit zkusenost ridice podle poctu nabizenych jizd a nejak vyjadrit na intervalu od 1 do 5
--- TODO - vypocet hodnoceni ridice pomoci hvezdicek (neco chytrejsiho nez prumer, viz. lamer)
-
--- ALTER session SET nls_date_format='dd.mm.yyyy';
--- CREATE OR REPLACE PROCEDURE zkusenost_ridice(uzivatel IN NUMBER) IS
---     zkusenost NUMBER;
--- BEGIN
---     SELECT COUNT(*)
---     INTO zkusenost
---     FROM jizda
---     WHERE nabizejici = uzivatel
---     GROUP BY nabizejici;
---     DBMS_OUTPUT.put_line('Zkusenost uzivatele je ' || zkusenost);
--- END;
--- /
--- ALTER session SET nls_date_format='dd.mm.yyyy';
-
--- CREATE OR REPLACE PROCEDURE hodnoceni_ridice AS
--- BEGIN
---     DBMS_OUTPUT.put_line();
--- END;
-
------------------------------------------------------------
 ------------------------ EXECUTION ------------------------
 -----------------------------------------------------------
 
--- EXEC zkusenost_ridice(1);
+BEGIN
+    statistika_ridice(1);
+end;
 
 -----------------------------------------------------------
 ---------------------- ACCESS RIGHTS ----------------------
