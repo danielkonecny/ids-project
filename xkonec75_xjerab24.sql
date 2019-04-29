@@ -2,31 +2,14 @@
 -- Course: Databazove systemy (IDS)
 -- Institution: Brno University of Technology, Faculty of Information Technology
 -- Authors: Filip Jerabek (xjerab24), Daniel Konecny (xkonec75)
--- Version: 3.5
+-- Version: 3.8
 -- Date: 29. 4. 2019
 
 -----------------------------------------------------------
------------------------- DROP DATA ------------------------
+-------------------------- TABLES -------------------------
 -----------------------------------------------------------
 
-DROP TABLE uzivatel             CASCADE CONSTRAINTS;
-DROP TABLE automobil            CASCADE CONSTRAINTS;
-DROP TABLE jizda                CASCADE CONSTRAINTS;
-DROP TABLE ucastni_se_jizdy     CASCADE CONSTRAINTS;
-DROP TABLE hodnoceni            CASCADE CONSTRAINTS;
-DROP TABLE vylet                CASCADE CONSTRAINTS;
-DROP TABLE ucastni_se_vyletu    CASCADE CONSTRAINTS;
-DROP TABLE clanek               CASCADE CONSTRAINTS;
-DROP TABLE vlog                 CASCADE CONSTRAINTS;
-
-DROP SEQUENCE uzivatel_inc;
-
-DROP PROCEDURE statistika_ridice;
-
------------------------------------------------------------
----------------------- CREATE TABLES ----------------------
------------------------------------------------------------
-
+DROP TABLE uzivatel CASCADE CONSTRAINTS;
 CREATE TABLE uzivatel (
  -- id_uzivatel           NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
   id_uzivatel           NUMBER(15)      PRIMARY KEY NOT NULL,   -- Pri pouziti triggeru na inkrementaci ID.
@@ -42,12 +25,17 @@ CREATE TABLE uzivatel (
   zvirata               NUMBER(1)                   CHECK(zvirata = 0 OR zvirata = 1)
 );
 
+DROP TABLE automobil CASCADE CONSTRAINTS;
 CREATE TABLE automobil (
   id_automobil          NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
   vlastnik              NUMBER(15)      NOT NULL,
   jmeno                 VARCHAR2(100)   NOT NULL
 );
+ALTER TABLE automobil ADD (
+  CONSTRAINT FK_vlastnik FOREIGN KEY (vlastnik) REFERENCES uzivatel
+);
 
+DROP TABLE jizda CASCADE CONSTRAINTS;
 CREATE TABLE jizda (
   id_jizda              NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
   nabizejici            NUMBER(15)      NOT NULL,
@@ -59,7 +47,12 @@ CREATE TABLE jizda (
   cena_za_km            NUMBER(9,3)     NOT NULL,
   zavazadla             VARCHAR2(1000)
 );
+ALTER TABLE jizda ADD (
+  CONSTRAINT FK_jizda_nabizejici    FOREIGN KEY (nabizejici)    REFERENCES uzivatel,
+  CONSTRAINT FK_automobil           FOREIGN KEY (automobil)     REFERENCES automobil
+);
 
+DROP TABLE ucastni_se_jizdy CASCADE CONSTRAINTS;
 CREATE TABLE ucastni_se_jizdy (
   cestujici             NUMBER(15)      NOT NULL,
   jizda                 NUMBER(15)      NOT NULL,
@@ -68,7 +61,11 @@ CREATE TABLE ucastni_se_jizdy (
   misto_vystupu_s       NUMBER(11,8)    NOT NULL,   -- souradnice sirky
   misto_vystupu_d       NUMBER(11,8)    NOT NULL    -- souradnice delky
 );
+ALTER TABLE ucastni_se_jizdy ADD (
+  CONSTRAINT PK_ucastni_se_jizdy PRIMARY KEY (cestujici, jizda)
+);
 
+DROP TABLE hodnoceni CASCADE CONSTRAINTS;
 CREATE TABLE hodnoceni (
   id_hodnoceni          NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
   hodnotici             NUMBER(15)      NOT NULL,
@@ -78,7 +75,12 @@ CREATE TABLE hodnoceni (
   dochvilnost           NUMBER(1)                   CHECK(dochvilnost > 0 AND dochvilnost <= 5),
   pratelskost           NUMBER(1)                   CHECK(pratelskost > 0 AND pratelskost <= 5)
 );
+ALTER TABLE hodnoceni ADD (
+  CONSTRAINT FK_hodnotici FOREIGN KEY (hodnotici) REFERENCES uzivatel,
+  CONSTRAINT FK_hodnoceny FOREIGN KEY (hodnoceny) REFERENCES uzivatel
+);
 
+DROP TABLE vylet CASCADE CONSTRAINTS;
 CREATE TABLE vylet (
   id_vylet              NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
   nabizejici            NUMBER(15)      NOT NULL,
@@ -90,12 +92,20 @@ CREATE TABLE vylet (
   narocnost             NUMBER(1)                   CHECK(narocnost > 0 AND narocnost <= 5),
   vybaveni              VARCHAR2(1000)
 );
+ALTER TABLE vylet ADD (
+  CONSTRAINT FK_vylet_nabizejici FOREIGN KEY (nabizejici) REFERENCES uzivatel
+);
 
+DROP TABLE ucastni_se_vyletu CASCADE CONSTRAINTS;
 CREATE TABLE ucastni_se_vyletu (
   ucastnik              NUMBER(15)      NOT NULL,
   vylet                 NUMBER(15)      NOT NULL
 );
+ALTER TABLE ucastni_se_vyletu ADD (
+  CONSTRAINT PK_ucastni_se_vyletu PRIMARY KEY (ucastnik, vylet)
+);
 
+DROP TABLE clanek CASCADE CONSTRAINTS;
 CREATE TABLE clanek (
   id_clanek             NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
   autor                 NUMBER(15)      NOT NULL,
@@ -103,7 +113,12 @@ CREATE TABLE clanek (
   opravneni             NUMBER(1)       NOT NULL    CHECK(opravneni = 0 OR opravneni = 1 OR opravneni = 2),
   text                  NCLOB           NOT NULL
 );
+ALTER TABLE clanek ADD (
+  CONSTRAINT FK_clanek_autor FOREIGN KEY (autor) REFERENCES uzivatel,
+  CONSTRAINT FK_clanek_vylet FOREIGN KEY (vylet) REFERENCES vylet
+);
 
+DROP TABLE vlog CASCADE CONSTRAINTS;
 CREATE TABLE vlog (
   id_vlog               NUMBER GENERATED ALWAYS AS IDENTITY(START with 1 INCREMENT by 1) PRIMARY KEY NOT NULL,
   autor                 NUMBER(15)      NOT NULL,
@@ -112,51 +127,16 @@ CREATE TABLE vlog (
   video                 VARCHAR2(1000)  NOT NULL,
   popisek               VARCHAR2(1000)
 );
-
------------------------------------------------------------
---------------------  FOREIGN KEYS ------------------------
------------------------------------------------------------
-
-ALTER TABLE automobil ADD (
-  CONSTRAINT FK_vlastnik            FOREIGN KEY (vlastnik)      REFERENCES uzivatel
-);
-
-ALTER TABLE jizda ADD (
-  CONSTRAINT FK_jizda_nabizejici    FOREIGN KEY (nabizejici)    REFERENCES uzivatel,
-  CONSTRAINT FK_automobil           FOREIGN KEY (automobil)     REFERENCES automobil
-);
-
-ALTER TABLE ucastni_se_jizdy ADD (
-  CONSTRAINT PK_ucastni_se_jizdy    PRIMARY KEY (cestujici, jizda)
-);
-
-ALTER TABLE hodnoceni ADD (
-  CONSTRAINT FK_hodnotici           FOREIGN KEY (hodnotici)     REFERENCES uzivatel,
-  CONSTRAINT FK_hodnoceny           FOREIGN KEY (hodnoceny)     REFERENCES uzivatel
-);
-
-ALTER TABLE vylet ADD (
-  CONSTRAINT FK_vylet_nabizejici    FOREIGN KEY (nabizejici)    REFERENCES uzivatel
-);
-
-ALTER TABLE ucastni_se_vyletu ADD (
-  CONSTRAINT PK_ucastni_se_vyletu   PRIMARY KEY (ucastnik, vylet)
-);
-
-ALTER TABLE clanek ADD (
-  CONSTRAINT FK_clanek_autor        FOREIGN KEY (autor)         REFERENCES uzivatel,
-  CONSTRAINT FK_clanek_vylet        FOREIGN KEY (vylet)         REFERENCES vylet
-);
-
 ALTER TABLE vlog ADD (
-  CONSTRAINT FK_vlog_autor          FOREIGN KEY (autor)         REFERENCES uzivatel,
-  CONSTRAINT FK_vlog_vylet          FOREIGN KEY (vylet)         REFERENCES vylet
+  CONSTRAINT FK_vlog_autor FOREIGN KEY (autor) REFERENCES uzivatel,
+  CONSTRAINT FK_vlog_vylet FOREIGN KEY (vylet) REFERENCES vylet
 );
 
 -----------------------------------------------------------
 ------------------------- TRIGGERS ------------------------
 -----------------------------------------------------------
 
+DROP SEQUENCE uzivatel_inc;
 CREATE SEQUENCE uzivatel_inc;
 CREATE OR REPLACE TRIGGER uzivatel_insert BEFORE INSERT ON uzivatel FOR EACH ROW
 BEGIN
@@ -183,19 +163,51 @@ END;
 ------------------------ PROCEDURES -----------------------
 -----------------------------------------------------------
 
--- TODO - zjistit zkusenost ridice podle poctu nabizenych jizd a nejak vyjadrit na intervalu od 1 do 5
--- TODO - vypocet hodnoceni ridice pomoci hvezdicek (neco chytrejsiho nez prumer, viz. lamer)
+-- TODO - osetreni vyjimek
 
-CREATE OR REPLACE PROCEDURE statistika_ridice(uzivatel IN NUMBER) IS
+DROP PROCEDURE zkusenost_ridice;
+CREATE OR REPLACE PROCEDURE zkusenost_ridice(uzivatel IN NUMBER, zkusenost OUT VARCHAR2) IS
+    CURSOR zkusenost_ridice IS SELECT * FROM jizda WHERE nabizejici = uzivatel;
+    jedna_jizda zkusenost_ridice%ROWTYPE;
+    skore NUMBER;
+    pocet_cestujicich NUMBER;
+BEGIN
+    skore := 0;
+    pocet_cestujicich := 0;
+    OPEN zkusenost_ridice;
+    LOOP
+        FETCH zkusenost_ridice INTO jedna_jizda;
+        EXIT WHEN zkusenost_ridice%NOTFOUND;
+        SELECT COUNT(*) INTO pocet_cestujicich FROM ucastni_se_jizdy WHERE jizda = jedna_jizda.id_jizda;
+        skore := skore + pocet_cestujicich;
+    END LOOP;
+
+    IF(skore < 1) THEN
+        zkusenost := 'novacek';
+    ELSIF(skore < 5) THEN
+        zkusenost := 'zacatecnik';
+    ELSIF(skore < 20) THEN
+        zkusenost := 'zkuseny';
+    ELSIF(skore < 100) THEN
+        zkusenost := 'pokrocily';
+    ELSE
+        zkusenost := 'profesional';
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        raise_application_error(-20002, 'ERROR: Chyba pri provadeni procedury zkusenost_ridice!');
+END zkusenost_ridice;
+
+DROP PROCEDURE hodnoceni_ridice;
+CREATE OR REPLACE PROCEDURE hodnoceni_ridice(uzivatel IN NUMBER, hodnoceni OUT NUMBER) IS
     CURSOR hodnoceni_ridice IS SELECT hvezdicky FROM hodnoceni WHERE hodnoceny = uzivatel;
     jedno_hodnoceni NUMBER;
     soucet NUMBER;
     pocet NUMBER;
-    prumer_hodnoceni NUMBER;
 BEGIN
     soucet := 0;
     pocet := 0;
-    prumer_hodnoceni := 0;
+    hodnoceni := 0;
     OPEN hodnoceni_ridice;
     LOOP
         FETCH hodnoceni_ridice INTO jedno_hodnoceni;
@@ -203,10 +215,36 @@ BEGIN
         soucet := soucet + jedno_hodnoceni;
         pocet := pocet + 1;
     END LOOP;
-    prumer_hodnoceni := soucet / pocet;
-    prumer_hodnoceni := ROUND(prumer_hodnoceni, 1);
-    DBMS_OUTPUT.put_line('Hodnoceni uzivatele je ' || prumer_hodnoceni);
-END statistika_ridice;
+    hodnoceni := soucet / pocet;
+    hodnoceni := ROUND(hodnoceni, 1);
+EXCEPTION
+    WHEN ZERO_DIVIDE THEN
+        hodnoceni := 0;
+    WHEN OTHERS THEN
+        raise_application_error(-20002, 'ERROR: Chyba pri provadeni procedury hodnoceni_ridice!');
+END hodnoceni_ridice;
+
+DROP PROCEDURE statistika_ridicu;
+CREATE OR REPLACE PROCEDURE statistika_ridicu IS
+    CURSOR ridic IS SELECT * FROM uzivatel;
+    jeden_ridic ridic%ROWTYPE;
+    zkusenost VARCHAR2(100);
+    hodnoceni NUMBER;
+BEGIN
+    OPEN ridic;
+    LOOP
+        FETCH ridic INTO jeden_ridic;
+        EXIT WHEN ridic%NOTFOUND;
+        DBMS_OUTPUT.put_line('Uzivatel: ' || jeden_ridic.jmeno);
+        zkusenost_ridice(jeden_ridic.id_uzivatel, zkusenost);
+        DBMS_OUTPUT.put_line('Zkusenost: ' || zkusenost);
+        hodnoceni_ridice(jeden_ridic.id_uzivatel, hodnoceni);
+        DBMS_OUTPUT.put_line('Hodnoceni: ' || hodnoceni);
+    END LOOP;
+EXCEPTION
+    WHEN OTHERS THEN
+        raise_application_error(-20002, 'ERROR: Chyba pri provadeni procedury statistika_ridice!');
+END statistika_ridicu;
 
 -----------------------------------------------------------
 --------------------- INSERT TEST DATA --------------------
@@ -362,24 +400,39 @@ INSERT INTO vlog (autor, vylet, opravneni, video, popisek)
 -----------------------------------------------------------
 
 BEGIN
-    statistika_ridice(1);
+    statistika_ridicu;
 end;
 
 -----------------------------------------------------------
----------------------- ACCESS RIGHTS ----------------------
+------------------- INDEX & EXPLAIN PLAN ------------------
 -----------------------------------------------------------
 
-GRANT ALL ON uzivatel           TO xjerab24;
-GRANT ALL ON automobil          TO xjerab24;
-GRANT ALL ON jizda              TO xjerab24;
-GRANT ALL ON ucastni_se_jizdy   TO xjerab24;
-GRANT ALL ON hodnoceni          TO xjerab24;
-GRANT ALL ON vylet              TO xjerab24;
-GRANT ALL ON ucastni_se_vyletu  TO xjerab24;
-GRANT ALL ON clanek             TO xjerab24;
-GRANT ALL ON vlog               TO xjerab24;
+DROP INDEX jmeno;
+DROP INDEX hodnoceny;
 
--- GRANT EXECUTE ON zkusenost_ridice TO xjerab24;
+-- Puvodni neoptimalizovany SELECT.
+-- EXPLAIN PLAN FOR
+--   SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
+--   FROM uzivatel
+--   JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
+--   GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
+--   ORDER BY hodnoceni DESC;
+
+-- Optimalizace c. 1 pomoci indexu.
+CREATE INDEX jmeno ON uzivatel(jmeno, id_uzivatel);
+
+-- Optimalizace c.2 pomoci dvou indexu.
+CREATE INDEX hodnoceny ON hodnoceni(hodnoceny);
+
+EXPLAIN PLAN FOR
+  SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
+  FROM uzivatel
+  JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
+  GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
+  ORDER BY hodnoceni DESC;
+
+-- Vypis EXPLAIN PLAN.
+SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY(/*NULL, 'statement_id','BASIC'*/));
 
 -----------------------------------------------------------
 -------------------- MATERIALIZED VIEW --------------------
@@ -396,11 +449,9 @@ BUILD IMMEDIATE
 REFRESH FAST ON COMMIT
 ENABLE QUERY REWRITE
 AS
-    SELECT J.nabizejici, COUNT(J.nabizejici) AS pocet_jizd
-    FROM jizda J
-    GROUP BY J.nabizejici;
-
-GRANT ALL ON nabizene_jizdy TO xjerab24;
+    SELECT nabizejici, COUNT(nabizejici) AS pocet_jizd
+    FROM jizda
+    GROUP BY nabizejici;
 
 SELECT * FROM nabizene_jizdy;
 INSERT INTO jizda (nabizejici, automobil, trasa, zajizdka, cas_odjezdu, casova_flexibilita, cena_za_km, zavazadla)
@@ -411,35 +462,21 @@ COMMIT;
 SELECT * FROM nabizene_jizdy;
 
 -----------------------------------------------------------
-------------------- INDEX & EXPLAIN PLAN ------------------
+---------------------- ACCESS RIGHTS ----------------------
 -----------------------------------------------------------
 
-DROP INDEX hvezdicky;
-DROP INDEX jmeno;
+GRANT ALL ON uzivatel           TO xjerab24;
+GRANT ALL ON automobil          TO xjerab24;
+GRANT ALL ON jizda              TO xjerab24;
+GRANT ALL ON ucastni_se_jizdy   TO xjerab24;
+GRANT ALL ON hodnoceni          TO xjerab24;
+GRANT ALL ON vylet              TO xjerab24;
+GRANT ALL ON ucastni_se_vyletu  TO xjerab24;
+GRANT ALL ON clanek             TO xjerab24;
+GRANT ALL ON vlog               TO xjerab24;
 
---puvodni neoptimalizovany SELECT
--- EXPLAIN PLAN FOR
---   SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
---   FROM uzivatel
---   JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
---   GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
---   ORDER BY hodnoceni DESC;
+GRANT EXECUTE ON zkusenost_ridice   TO xjerab24;
+GRANT EXECUTE ON hodnoceni_ridice   TO xjerab24;
+GRANT EXECUTE ON statistika_ridicu  TO xjerab24;
 
---optimalizace c.1 pomoci indexu
-CREATE INDEX jmeno ON uzivatel(jmeno, id_uzivatel);
-
-
---optimalizace c.2 pomoci dvou indexu
-CREATE INDEX hodnoceny ON hodnoceni(hodnoceny);
-
-EXPLAIN PLAN FOR
-  SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
-  FROM uzivatel
-  JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
-  GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
-  ORDER BY hodnoceni DESC;
-
---vypis EXPLAIN PLAN
-SELECT PLAN_TABLE_OUTPUT
-FROM TABLE(DBMS_XPLAN.DISPLAY(/*NULL, 'statement_id','BASIC'*/));
-
+GRANT ALL ON nabizene_jizdy TO xjerab24;
