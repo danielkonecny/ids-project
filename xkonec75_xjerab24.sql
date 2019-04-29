@@ -1,8 +1,9 @@
 -- Projekt 4. a 5. cast - SQL skript pro vytvoreni pokrocilych objektu schematu databaze
+-- Theme: Spolujizda (zadani c. 66)
 -- Course: Databazove systemy (IDS)
 -- Institution: Brno University of Technology, Faculty of Information Technology
 -- Authors: Filip Jerabek (xjerab24), Daniel Konecny (xkonec75)
--- Version: 3.8
+-- Version: 4.0
 -- Date: 29. 4. 2019
 
 -----------------------------------------------------------
@@ -162,8 +163,6 @@ END;
 -----------------------------------------------------------
 ------------------------ PROCEDURES -----------------------
 -----------------------------------------------------------
-
--- TODO - osetreni vyjimek
 
 DROP PROCEDURE zkusenost_ridice;
 CREATE OR REPLACE PROCEDURE zkusenost_ridice(uzivatel IN NUMBER, zkusenost OUT VARCHAR2) IS
@@ -350,50 +349,50 @@ INSERT INTO vlog (autor, vylet, opravneni, video, popisek)
 ----------------------- SELECT DATA -----------------------
 -----------------------------------------------------------
 
--- -- Spojeni 2 tabulek - Zobrazi vsechny jizdy jednoho ridice.
--- SELECT jizda.*
--- FROM jizda
--- JOIN uzivatel ON jizda.nabizejici = uzivatel.id_uzivatel
--- WHERE uzivatel.id_uzivatel = '3';
---
--- -- Spojeni 2 tabulek - Zobrazi vsechna slovni hodnoceni udelena danemu ridici.
--- SELECT uzivatel.jmeno, hodnoceni.slovni_hodnoceni
--- FROM hodnoceni
--- JOIN uzivatel ON hodnoceni.hodnoceny = uzivatel.id_uzivatel
--- WHERE hodnoceni.hodnoceny = '1';
---
--- -- Spojeni 3 tabulek - Zobrazi jizdu, cestujiciho, misto odkud a kam jede a cas odjezdu.
--- SELECT jizda.id_jizda, uzivatel.jmeno AS cestujici, jizda.cas_odjezdu,
---     ucastni_se_jizdy.misto_nastupu_s, ucastni_se_jizdy.misto_nastupu_d,
---     ucastni_se_jizdy.misto_vystupu_s, ucastni_se_jizdy.misto_vystupu_d
--- FROM ucastni_se_jizdy
--- JOIN uzivatel ON ucastni_se_jizdy.cestujici = uzivatel.id_uzivatel
--- JOIN jizda ON ucastni_se_jizdy.jizda = jizda.id_jizda;
---
--- -- Klauzule GROUP BY a agregacni funkce - Zobrazi pocet ucastniku jednotlivych vyletu.
--- SELECT vylet.id_vylet, vylet.harmonogram, COUNT(vylet.id_vylet) AS pocet_ucastniku
--- FROM ucastni_se_vyletu
--- JOIN vylet ON ucastni_se_vyletu.vylet = vylet.id_vylet
--- JOIN uzivatel ON ucastni_se_vyletu.ucastnik = uzivatel.id_uzivatel
--- GROUP BY vylet.id_vylet, vylet.harmonogram;
---
--- -- Klauzule GROUP BY a agregacni funkce - Zobrazi prumerne hodnoceni kazdeho uzivatele a seradi od nejlepsiho.
--- SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
--- FROM uzivatel
--- JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
--- GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
--- ORDER BY hodnoceni DESC;
---
--- -- Predikat EXISTS - Zobrazi vsechny vylety, ktere maji clanek i vlog.
--- SELECT DISTINCT vylet.id_vylet, vylet.harmonogram
--- FROM vylet
--- JOIN vlog ON vylet.id_vylet = vlog.vylet
--- WHERE EXISTS (SELECT clanek.id_clanek FROM vylet JOIN clanek ON clanek.vylet = vylet.id_vylet);
---
--- -- Predikat IN s vnorenym SELECTem - Zobrazi jmena uzivatelu, kteri nabizi jizdy bez flexibility.
--- SELECT DISTINCT jmeno
--- FROM uzivatel
--- WHERE id_uzivatel IN (SELECT nabizejici FROM jizda WHERE casova_flexibilita = 0);
+-- Spojeni 2 tabulek - Zobrazi vsechny jizdy jednoho ridice.
+SELECT jizda.*
+FROM jizda
+JOIN uzivatel ON jizda.nabizejici = uzivatel.id_uzivatel
+WHERE uzivatel.id_uzivatel = '3';
+
+-- Spojeni 2 tabulek - Zobrazi vsechna slovni hodnoceni udelena danemu ridici.
+SELECT uzivatel.jmeno, hodnoceni.slovni_hodnoceni
+FROM hodnoceni
+JOIN uzivatel ON hodnoceni.hodnoceny = uzivatel.id_uzivatel
+WHERE hodnoceni.hodnoceny = '1';
+
+-- Spojeni 3 tabulek - Zobrazi jizdu, cestujiciho, misto odkud a kam jede a cas odjezdu.
+SELECT jizda.id_jizda, uzivatel.jmeno AS cestujici, jizda.cas_odjezdu,
+    ucastni_se_jizdy.misto_nastupu_s, ucastni_se_jizdy.misto_nastupu_d,
+    ucastni_se_jizdy.misto_vystupu_s, ucastni_se_jizdy.misto_vystupu_d
+FROM ucastni_se_jizdy
+JOIN uzivatel ON ucastni_se_jizdy.cestujici = uzivatel.id_uzivatel
+JOIN jizda ON ucastni_se_jizdy.jizda = jizda.id_jizda;
+
+-- Klauzule GROUP BY a agregacni funkce - Zobrazi pocet ucastniku jednotlivych vyletu.
+SELECT vylet.id_vylet, vylet.harmonogram, COUNT(vylet.id_vylet) AS pocet_ucastniku
+FROM ucastni_se_vyletu
+JOIN vylet ON ucastni_se_vyletu.vylet = vylet.id_vylet
+JOIN uzivatel ON ucastni_se_vyletu.ucastnik = uzivatel.id_uzivatel
+GROUP BY vylet.id_vylet, vylet.harmonogram;
+
+-- Klauzule GROUP BY a agregacni funkce - Zobrazi prumerne hodnoceni kazdeho uzivatele a seradi od nejlepsiho.
+SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
+FROM uzivatel
+JOIN hodnoceni ON uzivatel.id_uzivatel = hodnoceni.hodnoceny
+GROUP BY uzivatel.id_uzivatel, uzivatel.jmeno
+ORDER BY hodnoceni DESC;
+
+-- Predikat EXISTS - Zobrazi vsechny vylety, ktere maji clanek i vlog.
+SELECT DISTINCT vylet.id_vylet, vylet.harmonogram
+FROM vylet
+JOIN vlog ON vylet.id_vylet = vlog.vylet
+WHERE EXISTS (SELECT clanek.id_clanek FROM vylet JOIN clanek ON clanek.vylet = vylet.id_vylet);
+
+-- Predikat IN s vnorenym SELECTem - Zobrazi jmena uzivatelu, kteri nabizi jizdy bez flexibility.
+SELECT DISTINCT jmeno
+FROM uzivatel
+WHERE id_uzivatel IN (SELECT nabizejici FROM jizda WHERE casova_flexibilita = 0);
 
 -----------------------------------------------------------
 ------------------------ EXECUTION ------------------------
@@ -407,9 +406,6 @@ end;
 ------------------- INDEX & EXPLAIN PLAN ------------------
 -----------------------------------------------------------
 
-DROP INDEX jmeno;
-DROP INDEX hodnoceny;
-
 -- Puvodni neoptimalizovany SELECT.
 -- EXPLAIN PLAN FOR
 --   SELECT uzivatel.id_uzivatel, uzivatel.jmeno, AVG(hodnoceni.hvezdicky) AS hodnoceni
@@ -419,9 +415,11 @@ DROP INDEX hodnoceny;
 --   ORDER BY hodnoceni DESC;
 
 -- Optimalizace c. 1 pomoci indexu.
+DROP INDEX jmeno;
 CREATE INDEX jmeno ON uzivatel(jmeno, id_uzivatel);
 
 -- Optimalizace c.2 pomoci dvou indexu.
+DROP INDEX hodnoceny;
 CREATE INDEX hodnoceny ON hodnoceni(hodnoceny);
 
 EXPLAIN PLAN FOR
